@@ -1,6 +1,7 @@
 import sys
 import socket
 import threading
+import argparse
 
 def server_loop(local_host, local_port, remote_host, remote_port, receive_first):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -65,7 +66,7 @@ def proxy_handler(client_socket, remote_host, remote_port, receive_first):
         if not len(local_buffer) or not len(remote_buffer):
             client_socket.close()
             remote_socket.close()
-            print("[*] No more date. Closing connection.")
+            print("[*] No more data. Closing connection.")
             break
 
 def hexdump(src, length=16):
@@ -82,7 +83,7 @@ def hexdump(src, length=16):
 def receive_from(connection):
     buffer = ""
     # set a 2-second timeout depending on your target, this may need to be adjusted
-    connection.settimeout(2)
+    connection.settimeout(30)
     try:
         # keep reading into the buffer until there's no more data
         while True:
@@ -104,24 +105,15 @@ def response_handler(buffer):
     return buffer
 
 def main():
-    # no fancy command-line parsing here
-    if len(sys.argv[1:]) != 5:
-        print("Usage: ./proxy.py [localhost] [localport] [remotehost] [remoteport] [receive_first]")
-        print("Example: ./proxy.py 127.0.0.1 1337 192.168.1.1 8080 True")
-        sys.exit(0)
-    # define script parameters
-    local_host = sys.argv[1]
-    local_port = int(sys.argv[2])
-    remote_host = sys.argv[3]
-    remote_port = int(sys.argv[4])
-    receive_first = sys.argv[5]
-
-    if "True" in receive_first:
-        receive_first = True
-    else:
-        receive_first = False
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('localhost', help='local ip-address to listen on')
+    parser.add_argument('localport', type=int, help='local port to listen on')
+    parser.add_argument('remotehost', help='remote ip-address for connection')
+    parser.add_argument('remoteport', type=int, help='remote port for connection')
+    parser.add_argument('--receivefirst', action='store_true', help='receive packets first')
+    args = parser.parse_args()
     # now spin up our listening socket
-    server_loop(local_host, local_port, remote_host, remote_port, receive_first)
+    server_loop(args.localhost, args.localport, args.remotehost, args.remoteport, args.receivefirst)
 
-main()
+if __name__ == "__main__":
+    main()
